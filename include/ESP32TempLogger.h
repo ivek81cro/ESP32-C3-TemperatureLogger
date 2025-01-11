@@ -24,8 +24,8 @@ private:
     String getFormattedDateTime();
 
     // Wi-Fi Credentials
-    const char* ssid = "ALHN-FAF3";
-    const char* password = "yAXBzA52vq";
+    const char* ssid = "";
+    const char* password = "";
 
     // Pin configuration
     static const int ONE_WIRE_BUS = 0;
