@@ -1,6 +1,16 @@
 // File: ESP32TempLogger.cpp
 #include "ESP32TempLogger.h"
 
+ESP32TempLogger logger;
+
+void setup() {
+    logger.setup(); // Call the setup method of the logger
+}
+
+void loop() {
+    logger.loop(); // Call the loop method of the logger
+}
+
 ESP32TempLogger::ESP32TempLogger()
     : oneWire(ONE_WIRE_BUS), sensors(&oneWire), timeClient(ntpUDP, "pool.ntp.org", 0, 60000) {}
 
