@@ -7,8 +7,8 @@
 #include <WiFiUdp.h>
 
 // Wi-Fi Credentials
-const char* ssid = "ALHN-FAF3";
-const char* password = "yAXBzA52vq";
+const char* ssid = "";
+const char* password = "";
 
 // NTP Client setup
 WiFiUDP ntpUDP;
