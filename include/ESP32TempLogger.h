@@ -2,6 +2,7 @@
 #ifndef ESP32_TEMP_LOGGER_H
 #define ESP32_TEMP_LOGGER_H
 
+#include "WiFiCredentials.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -22,10 +23,6 @@ private:
     bool initializeSDCard();
     bool ensureSDMounted();
     String getFormattedDateTime();
-
-    // Wi-Fi Credentials
-    const char* ssid = "ALHN-FAF3";
-    const char* password = "yAXBzA52vq";
 
     // Pin configuration
     static const int ONE_WIRE_BUS = 0;
