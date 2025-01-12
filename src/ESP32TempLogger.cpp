@@ -59,7 +59,7 @@ void ESP32TempLogger::loop() {
 
 void ESP32TempLogger::connectToWiFi() {
     Serial.print("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
         Serial.print(".");
