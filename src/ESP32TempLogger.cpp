@@ -1,6 +1,6 @@
 
 #include "ESP32TempLogger.h"
-
+#include "WiFiCredentials.h"
 
 
 ESP32TempLogger::ESP32TempLogger()

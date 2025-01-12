@@ -2,7 +2,6 @@
 #ifndef ESP32_TEMP_LOGGER_H
 #define ESP32_TEMP_LOGGER_H
 
-#include "WiFiCredentials.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
