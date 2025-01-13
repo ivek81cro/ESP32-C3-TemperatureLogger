@@ -160,14 +160,8 @@ void ESP32TempLogger::sendDataViaESPNOW(const char* date, float temperature) {
 }
 
 void ESP32TempLogger::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    String success;
     Serial.print("\r\nLast Packet Send Status:\t");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-    if (status == 0) {
-        success = "Delivery Success :)";
-    } else {
-        success = "Delivery Fail :(";
-    }
 }
 
 // Callback function that will be executed when data is received - testing purposes
