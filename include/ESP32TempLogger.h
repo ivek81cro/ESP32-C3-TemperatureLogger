@@ -31,7 +31,7 @@ private:
     String getFormattedDateTime();
     bool readDataFromSD(String &data);
     void prepareESPNOW();
-    void ESP32TempLogger::logDataToSD(const String &dataString);
+    void logDataToSD(const String &dataString);
     void sendDataViaESPNOW(const char* date, float temperature);
     static void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
     static void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
