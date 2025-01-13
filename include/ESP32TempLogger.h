@@ -9,6 +9,13 @@
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <esp_now.h>
+
+// Structure to send data
+typedef struct espNow_message {
+    char dateAndTime[25];
+    float temperature;    
+} espNow_message;
 
 class ESP32TempLogger {
 public:
@@ -22,6 +29,11 @@ private:
     bool initializeSDCard();
     bool ensureSDMounted();
     String getFormattedDateTime();
+    bool readDataFromSD(String &data);
+    void prepareESPNOW();
+    void sendDataViaESPNOW(const char* date, float temperature);
+    static void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+    static void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 
     // Pin configuration
     static const int ONE_WIRE_BUS = 0;
@@ -39,6 +51,11 @@ private:
     // NTP Client setup
     WiFiUDP ntpUDP;
     NTPClient timeClient;
+    
+    esp_now_peer_info_t peerInfo;
+
+    const uint8_t broadcastAddress[6] = {0xC0, 0x4E, 0x30, 0x80, 0x45, 0x1C};
+
 };
 
 #endif // ESP32_TEMP_LOGGER_H

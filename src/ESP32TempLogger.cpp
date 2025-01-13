@@ -1,7 +1,5 @@
-
 #include "ESP32TempLogger.h"
 #include "WiFiCredentials.h"
-
 
 ESP32TempLogger::ESP32TempLogger()
     : oneWire(ONE_WIRE_BUS), sensors(&oneWire), timeClient(ntpUDP, "pool.ntp.org", 0, 60000) {}
@@ -13,6 +11,10 @@ void ESP32TempLogger::setup() {
 
     // Connect to Wi-Fi
     connectToWiFi();
+    WiFi.mode(WIFI_AP_STA);
+    Serial.println(WiFi.macAddress());    
+
+    prepareESPNOW();
 
     // Initialize NTP client
     timeClient.begin();
@@ -37,7 +39,13 @@ void ESP32TempLogger::loop() {
     float temperatureC = sensors.getTempCByIndex(0);
 
     // Format temperature reading with full timestamp
-    String dataString = getFormattedDateTime() + String(", Temperature: ") + temperatureC + " °C\n";
+    String date = getFormattedDateTime();
+    char dateArray[25];
+    date.toCharArray(dateArray, 25);
+    String dataString = date + String(", Temperature: ") + temperatureC + " °C\n";
+    
+    sendDataViaESPNOW(dateArray, temperatureC);
+
     Serial.print("Logging: ");
     Serial.print(dataString);
 
@@ -50,8 +58,11 @@ void ESP32TempLogger::loop() {
     } else {
         Serial.println("Error opening temp_log.txt");
     }
+    
 
-    // Enable deep sleep for 30 seconds
+    //delay(10000);  // 10 seconds
+
+    //Enable deep sleep for 30 seconds
     Serial.println("Entering deep sleep for 30 seconds...");
     esp_sleep_enable_timer_wakeup(30 * 1000000ULL);
     esp_deep_sleep_start();
@@ -59,7 +70,7 @@ void ESP32TempLogger::loop() {
 
 void ESP32TempLogger::connectToWiFi() {
     Serial.print("Connecting to WiFi...");
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD,0);
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
         Serial.print(".");
@@ -102,4 +113,81 @@ String ESP32TempLogger::getFormattedDateTime() {
     char buffer[25];
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
     return String(buffer);
+}
+
+bool ESP32TempLogger::readDataFromSD(String &data) {
+    if (!ensureSDMounted()) {
+        return false;
+    }
+    dataFile = sd.open("data.txt", FILE_READ);
+    if (!dataFile) {
+        Serial.println("Failed to open file for reading");
+        return false;
+    }
+    data = dataFile.readString();
+    dataFile.close();
+    return true;
+}
+
+void ESP32TempLogger::prepareESPNOW(){
+    // Init ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+      Serial.println("Error initializing ESP-NOW");
+      return;
+    }
+
+    // Once ESPNow is successfully Init, we will register for Send CB to
+    // get the status of Trasnmitted packet
+    esp_now_register_send_cb(OnDataSent);
+
+    // Register peer
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;  
+    peerInfo.encrypt = false;
+
+    // Add peer        
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
+    // Register for a callback function that will be called when data is received
+    esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+
+}
+
+void ESP32TempLogger::sendDataViaESPNOW(const char* date, float temperature) {
+    espNow_message messagePacket;
+    strncpy(messagePacket.dateAndTime, date, sizeof(messagePacket.dateAndTime));
+    messagePacket.temperature = temperature;
+    
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &messagePacket, sizeof(messagePacket));
+    
+    if (result == ESP_OK) {
+      Serial.println("Sent with success");
+    }
+    else {
+      Serial.println("Error sending the data");
+    }
+}
+
+void ESP32TempLogger::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+    String success;
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    if (status ==0){
+     success = "Delivery Success :)";
+    }
+    else{
+      success = "Delivery Fail :(";
+    }
+}
+
+// Callback function that will be executed when data is received
+void  ESP32TempLogger::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    espNow_message incomingMessage;
+    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+    Serial.println(incomingMessage.dateAndTime);
+    Serial.println(incomingMessage.temperature);
 }
