@@ -54,8 +54,6 @@ private:
     
     esp_now_peer_info_t peerInfo;
 
-    const uint8_t broadcastAddress[6] = {0xC0, 0x4E, 0x30, 0x80, 0x45, 0x1C};
-
 };
 
 #endif // ESP32_TEMP_LOGGER_H
