@@ -50,19 +50,9 @@ void ESP32TempLogger::loop() {
     Serial.print(dataString);
 
     // Open file and append data
-    dataFile = sd.open("temp_log.txt", O_RDWR | O_CREAT | O_AT_END);
-    if (dataFile) {
-        dataFile.print(dataString);
-        dataFile.close();
-        Serial.println("Data written to SD card.");
-    } else {
-        Serial.println("Error opening temp_log.txt");
-    }
-    
+    logDataToSD(dataString);
 
-    //delay(10000);  // 10 seconds
-
-    //Enable deep sleep for 30 seconds
+    // Enable deep sleep for 30 seconds
     Serial.println("Entering deep sleep for 30 seconds...");
     esp_sleep_enable_timer_wakeup(30 * 1000000ULL);
     esp_deep_sleep_start();
@@ -70,7 +60,7 @@ void ESP32TempLogger::loop() {
 
 void ESP32TempLogger::connectToWiFi() {
     Serial.print("Connecting to WiFi...");
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD,0);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD, 0);
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
         Serial.print(".");
@@ -129,44 +119,43 @@ bool ESP32TempLogger::readDataFromSD(String &data) {
     return true;
 }
 
-void ESP32TempLogger::prepareESPNOW(){
+void ESP32TempLogger::prepareESPNOW() {
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK) {
-      Serial.println("Error initializing ESP-NOW");
-      return;
+        Serial.println("Error initializing ESP-NOW");
+        return;
     }
 
-    // Once ESPNow is successfully Init, we will register for Send CB to
-    // get the status of Trasnmitted packet
+    // Register for Send Callback to get the status of transmitted packet
     esp_now_register_send_cb(OnDataSent);
 
     // Register peer
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = 0;  
+    peerInfo.channel = 0;
     peerInfo.encrypt = false;
 
-    // Add peer        
-    if (esp_now_add_peer(&peerInfo) != ESP_OK){
-      Serial.println("Failed to add peer");
-      return;
+    // Add peer
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+        Serial.println("Failed to add peer");
+        return;
     }
-    // Register for a callback function that will be called when data is received
-    esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
+    // Register for a callback function that will be called when data is received
+    esp_now_register_recv_cb(OnDataRecv);
 }
 
 void ESP32TempLogger::sendDataViaESPNOW(const char* date, float temperature) {
     espNow_message messagePacket;
-    strncpy(messagePacket.dateAndTime, date, sizeof(messagePacket.dateAndTime));
+    strncpy(messagePacket.dateAndTime, date, sizeof(messagePacket.dateAndTime) - 1);
+    messagePacket.dateAndTime[sizeof(messagePacket.dateAndTime) - 1] = '\0'; // Ensure null-termination
     messagePacket.temperature = temperature;
     
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &messagePacket, sizeof(messagePacket));
     
     if (result == ESP_OK) {
-      Serial.println("Sent with success");
-    }
-    else {
-      Serial.println("Error sending the data");
+        Serial.println("Sent with success");
+    } else {
+        Serial.println("Error sending the data");
     }
 }
 
@@ -174,20 +163,30 @@ void ESP32TempLogger::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t 
     String success;
     Serial.print("\r\nLast Packet Send Status:\t");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-    if (status ==0){
-     success = "Delivery Success :)";
-    }
-    else{
-      success = "Delivery Fail :(";
+    if (status == 0) {
+        success = "Delivery Success :)";
+    } else {
+        success = "Delivery Fail :(";
     }
 }
 
-// Callback function that will be executed when data is received
-void  ESP32TempLogger::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+// Callback function that will be executed when data is received - testing purposes
+void ESP32TempLogger::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     espNow_message incomingMessage;
     memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
     Serial.print("Bytes received: ");
     Serial.println(len);
     Serial.println(incomingMessage.dateAndTime);
     Serial.println(incomingMessage.temperature);
+}
+
+void ESP32TempLogger::logDataToSD(const String &dataString) {
+    dataFile = sd.open("temp_log.txt", O_RDWR | O_CREAT | O_AT_END);
+    if (dataFile) {
+        dataFile.print(dataString);
+        dataFile.close();
+        Serial.println("Data written to SD card.");
+    } else {
+        Serial.println("Error opening temp_log.txt");
+    }
 }
